@@ -1,0 +1,72 @@
+---
+title: "MENA power analysis"
+author: "AS d'Urso"
+date: "November 14, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(pwr) # for power calcs
+library(tidyverse) 
+library(plotly) # for interactive power curves
+
+# Generate power calculations
+ptab <- cbind(NULL, NULL)       
+
+for (i in seq(0,1, length.out = 200)) {
+  pwrt1 <- pwr.anova.test(k = 3, n = 50, f = i, sig.level = 0.05, power = NULL)
+  pwrt2 <- pwr.anova.test(k = 3, n = 75, f = i, sig.level = 0.05, power = NULL)
+  pwrt3 <- pwr.anova.test(k = 3, n = 100, f = i, sig.level = 0.05, power = NULL)
+  pwrt4 <- pwr.anova.test(k = 3, n = 150, f = i, sig.level = 0.05, power = NULL)
+  ptab <- rbind(ptab, cbind(pwrt1$f, pwrt1$power,
+                            pwrt2$f, pwrt2$power,
+                            pwrt3$f, pwrt3$power,
+                            pwrt4$f, pwrt4$power))
+}
+
+ptab <- cbind(seq_len(nrow(ptab)), ptab)
+
+colnames(ptab) <- c("id", "n = 50.f_effect", "n = 50.power",
+                    "n = 75.f_effect", "n = 75.power",
+                    "n = 100.f_effect", "n = 100.power",
+                    "n = 150.f_effect", "n = 150.power")
+
+# get data into right format for ggplot2
+temp <- ptab %>%
+  as.data.frame() %>%
+  gather(key = name, value = val, 2:9) %>%
+  separate(col = name, into = c("group", "var"), sep = "\\.") %>%
+  spread(key = var, value = val) %>% 
+  mutate(`Effect size (Cohen's d)` = f_effect * sqrt(2*3),
+         Power = power)
+
+# factor group
+temp$`Sample size` <- factor(temp$group, 
+                     levels = c("n = 50", "n = 75", 
+                                "n = 100", "n = 150"))
+
+
+
+
+# plot
+p <- temp %>%  
+  ggplot(aes(x = `Effect size (Cohen's d)`, y = Power, color = `Sample size`)) +
+  geom_line(size = 1) + 
+  xlim(0,1.5) +
+  theme_bw() +
+  ggtitle("Power Curve for Three-Group Experiment") +
+  theme(axis.text = element_text(size = 14), 
+        axis.title = element_text(size = 14), 
+        legend.text = element_text(size = 12)) +
+  geom_vline(xintercept = .356, linetype = 2) +
+  geom_hline(yintercept = 0.80, linetype = 2)
+```
+
+```{r, echo=F}
+# so simple to make interactive plots
+plotly::ggplotly(p)
+```
