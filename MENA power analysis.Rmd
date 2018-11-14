@@ -2,7 +2,9 @@
 title: "MENA power analysis"
 author: "AS d'Urso"
 date: "November 14, 2018"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
